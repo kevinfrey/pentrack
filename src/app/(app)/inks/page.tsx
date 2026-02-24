@@ -1,12 +1,18 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/auth";
 import db from "@/lib/db";
 import { InkBottle } from "@/lib/types";
 import InkBottleCard from "@/components/InkBottleCard";
 
 export const dynamic = "force-dynamic";
 
-export default function InksPage() {
-  const inks = db.prepare("SELECT * FROM ink_bottles ORDER BY brand, name").all() as InkBottle[];
+export default async function InksPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const userId = session.user.id;
+
+  const inks = db.prepare("SELECT * FROM ink_bottles WHERE user_id = ? ORDER BY brand, name").all(userId) as InkBottle[];
 
   return (
     <div>

@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Pen } from "@/lib/types";
 import PenForm from "@/components/PenForm";
@@ -10,10 +11,14 @@ export default async function EditPenPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const userId = session.user.id;
+
   const { id } = await params;
   const pen = db
-    .prepare("SELECT * FROM pens WHERE id = ?")
-    .get(parseInt(id)) as Pen | undefined;
+    .prepare("SELECT * FROM pens WHERE id = ? AND user_id = ?")
+    .get(parseInt(id), userId) as Pen | undefined;
 
   if (!pen) notFound();
 

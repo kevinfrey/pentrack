@@ -1,15 +1,21 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import Anthropic from "@anthropic-ai/sdk";
 import path from "path";
 import fs from "fs";
 
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
+const UPLOAD_DIR = process.env.DATA_DIR
+  ? path.join(process.env.DATA_DIR, "uploads")
+  : path.join(process.cwd(), "public", "uploads");
 
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   try {
     const formData = await request.formData();
     const image = formData.get("image") as File | null;
@@ -18,7 +24,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No image provided" }, { status: 400 });
     }
 
-    // Save the uploaded image
     const bytes = await image.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const ext = image.type.split("/")[1]?.replace("jpeg", "jpg") ?? "jpg";
@@ -27,24 +32,17 @@ export async function POST(request: Request) {
     fs.writeFileSync(filepath, buffer);
     const imageUrl = `/uploads/${filename}`;
 
-    // If no API key, return just the image URL
     if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json({
         imageUrl,
         identified: false,
-        message:
-          "Image saved. Set ANTHROPIC_API_KEY in .env.local to enable AI identification.",
+        message: "Image saved. Set ANTHROPIC_API_KEY in .env.local to enable AI identification.",
       });
     }
 
-    // Identify the pen with Claude
     const client = new Anthropic();
     const base64Image = buffer.toString("base64");
-    const mediaType = image.type as
-      | "image/jpeg"
-      | "image/png"
-      | "image/gif"
-      | "image/webp";
+    const mediaType = image.type as "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
     const response = await client.messages.create({
       model: "claude-opus-4-6",
@@ -55,11 +53,7 @@ export async function POST(request: Request) {
           content: [
             {
               type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: base64Image,
-              },
+              source: { type: "base64", media_type: mediaType, data: base64Image },
             },
             {
               type: "text",
@@ -91,16 +85,9 @@ Use empty string "" for any field you cannot determine. Respond with only the ra
       // Return image URL even if parsing fails
     }
 
-    return NextResponse.json({
-      imageUrl,
-      identified: true,
-      ...penData,
-    });
+    return NextResponse.json({ imageUrl, identified: true, ...penData });
   } catch (error) {
     console.error("Identify error:", error);
-    return NextResponse.json(
-      { error: "Failed to process image" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to process image" }, { status: 500 });
   }
 }

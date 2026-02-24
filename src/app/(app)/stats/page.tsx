@@ -1,39 +1,47 @@
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import db from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-export default function StatsPage() {
-  const totalPens = (db.prepare("SELECT COUNT(*) as count FROM pens").get() as { count: number }).count;
-  const totalValue = (db.prepare("SELECT COALESCE(SUM(purchase_price), 0) as total FROM pens WHERE purchase_price IS NOT NULL").get() as { total: number }).total;
-  const avgRating = (db.prepare("SELECT COALESCE(AVG(CAST(rating AS REAL)), 0) as avg FROM pens WHERE rating > 0").get() as { avg: number }).avg;
-  const totalInkBottles = (db.prepare("SELECT COUNT(*) as count FROM ink_bottles").get() as { count: number }).count;
-  const wishlistCount = (db.prepare("SELECT COUNT(*) as count FROM wishlist WHERE acquired = 0").get() as { count: number }).count;
+export default async function StatsPage() {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const userId = session.user.id;
+
+  const totalPens = (db.prepare("SELECT COUNT(*) as count FROM pens WHERE user_id = ?").get(userId) as { count: number }).count;
+  const totalValue = (db.prepare("SELECT COALESCE(SUM(purchase_price), 0) as total FROM pens WHERE purchase_price IS NOT NULL AND user_id = ?").get(userId) as { total: number }).total;
+  const avgRating = (db.prepare("SELECT COALESCE(AVG(CAST(rating AS REAL)), 0) as avg FROM pens WHERE rating > 0 AND user_id = ?").get(userId) as { avg: number }).avg;
+  const totalInkBottles = (db.prepare("SELECT COUNT(*) as count FROM ink_bottles WHERE user_id = ?").get(userId) as { count: number }).count;
+  const wishlistCount = (db.prepare("SELECT COUNT(*) as count FROM wishlist WHERE acquired = 0 AND user_id = ?").get(userId) as { count: number }).count;
 
   const byBrand = db.prepare(`
     SELECT brand, COUNT(*) as count FROM pens
-    WHERE brand != '' GROUP BY brand ORDER BY count DESC LIMIT 10
-  `).all() as { brand: string; count: number }[];
+    WHERE brand != '' AND user_id = ? GROUP BY brand ORDER BY count DESC LIMIT 10
+  `).all(userId) as { brand: string; count: number }[];
 
   const byNibSize = db.prepare(`
     SELECT nib_size, COUNT(*) as count FROM pens
-    WHERE nib_size != '' GROUP BY nib_size ORDER BY count DESC
-  `).all() as { nib_size: string; count: number }[];
+    WHERE nib_size != '' AND user_id = ? GROUP BY nib_size ORDER BY count DESC
+  `).all(userId) as { nib_size: string; count: number }[];
 
   const mostUsedInks = db.prepare(`
-    SELECT ink_name, COUNT(*) as count FROM ink_history
-    WHERE ink_name != '' GROUP BY ink_name ORDER BY count DESC LIMIT 10
-  `).all() as { ink_name: string; count: number }[];
+    SELECT ih.ink_name, COUNT(*) as count FROM ink_history ih
+    JOIN pens p ON p.id = ih.pen_id
+    WHERE ih.ink_name != '' AND p.user_id = ? GROUP BY ih.ink_name ORDER BY count DESC LIMIT 10
+  `).all(userId) as { ink_name: string; count: number }[];
 
   const mostActivePens = db.prepare(`
     SELECT p.brand, p.model, p.id, COUNT(ih.id) as ink_changes
     FROM pens p
     LEFT JOIN ink_history ih ON p.id = ih.pen_id
+    WHERE p.user_id = ?
     GROUP BY p.id ORDER BY ink_changes DESC LIMIT 5
-  `).all() as { brand: string; model: string; id: number; ink_changes: number }[];
+  `).all(userId) as { brand: string; model: string; id: number; ink_changes: number }[];
 
   const lowStockInks = db.prepare(`
-    SELECT * FROM ink_bottles WHERE remaining_pct <= 25 ORDER BY remaining_pct ASC
-  `).all() as { id: number; name: string; brand: string; remaining_pct: number }[];
+    SELECT * FROM ink_bottles WHERE remaining_pct <= 25 AND user_id = ? ORDER BY remaining_pct ASC
+  `).all(userId) as { id: number; name: string; brand: string; remaining_pct: number }[];
 
   const brandMax = byBrand[0]?.count || 1;
   const nibMax = byNibSize[0]?.count || 1;
@@ -56,7 +64,6 @@ export default function StatsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-        {/* By Brand */}
         {byBrand.length > 0 && (
           <div className="section-card">
             <h2 className="font-playfair font-semibold text-stone-900 mb-4">Pens by Brand</h2>
@@ -79,7 +86,6 @@ export default function StatsPage() {
           </div>
         )}
 
-        {/* By Nib Size */}
         {byNibSize.length > 0 && (
           <div className="section-card">
             <h2 className="font-playfair font-semibold text-stone-900 mb-4">Nib Size Distribution</h2>
@@ -104,7 +110,6 @@ export default function StatsPage() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        {/* Most Used Inks */}
         {mostUsedInks.length > 0 && (
           <div className="section-card">
             <h2 className="font-playfair font-semibold text-stone-900 mb-4">Most Used Inks</h2>
@@ -128,7 +133,6 @@ export default function StatsPage() {
         )}
 
         <div className="space-y-6">
-          {/* Most Active Pens */}
           {mostActivePens.length > 0 && mostActivePens[0].ink_changes > 0 && (
             <div className="section-card">
               <h2 className="font-playfair font-semibold text-stone-900 mb-4">Most Active Pens</h2>
@@ -145,7 +149,6 @@ export default function StatsPage() {
             </div>
           )}
 
-          {/* Low Stock Inks */}
           {lowStockInks.length > 0 && (
             <div className="section-card border-l-4 border-amber-400">
               <h2 className="font-playfair font-semibold text-stone-900 mb-3">Low Stock Inks</h2>

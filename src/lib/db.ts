@@ -2,7 +2,7 @@ import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), "data");
 const DB_PATH = path.join(DATA_DIR, "pens.db");
 
 if (!fs.existsSync(DATA_DIR)) {
@@ -12,6 +12,16 @@ if (!fs.existsSync(DATA_DIR)) {
 const db = new Database(DB_PATH);
 
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT DEFAULT '',
+    email TEXT UNIQUE NOT NULL,
+    email_verified INTEGER DEFAULT 0,
+    image TEXT DEFAULT '',
+    password_hash TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS pens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     brand TEXT NOT NULL DEFAULT '',
@@ -110,6 +120,15 @@ for (const sql of penMigrations) {
   } catch {
     // Column already exists — safe to ignore
   }
+}
+
+const authMigrations = [
+  `ALTER TABLE pens ADD COLUMN user_id TEXT REFERENCES users(id)`,
+  `ALTER TABLE ink_bottles ADD COLUMN user_id TEXT REFERENCES users(id)`,
+  `ALTER TABLE wishlist ADD COLUMN user_id TEXT REFERENCES users(id)`,
+];
+for (const sql of authMigrations) {
+  try { db.exec(sql); } catch { /* already exists */ }
 }
 
 export default db;

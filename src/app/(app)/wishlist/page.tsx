@@ -147,7 +147,6 @@ function WishlistCard({
 
   return (
     <div className={`rounded-2xl border p-4 flex items-start gap-4 ${item.acquired ? "opacity-60" : ""} ${priorityStyle}`}>
-      {/* Checkbox */}
       <button
         onClick={() => onAcquired(item)}
         className={`w-5 h-5 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center transition-colors ${

@@ -173,7 +173,7 @@ export default function PenForm({ initialData, penId, initialTags }: { initialDa
     <div className="max-w-2xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-7">
-        <Link href={isEdit ? `/pens/${penId}` : "/"} className="btn-ghost flex items-center gap-1 text-sm">
+        <Link href={isEdit ? `/pens/${penId}` : "/collection"} className="btn-ghost flex items-center gap-1 text-sm">
           <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
             <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -350,7 +350,7 @@ export default function PenForm({ initialData, penId, initialTags }: { initialDa
 
       {/* Actions */}
       <div className="flex gap-3 pb-8">
-        <Link href={isEdit ? `/pens/${penId}` : "/"} className="btn-secondary flex-1 text-center">
+        <Link href={isEdit ? `/pens/${penId}` : "/collection"} className="btn-secondary flex-1 text-center">
           Cancel
         </Link>
         <button type="button" onClick={handleSave} disabled={isSaving} className="btn-primary flex-1">

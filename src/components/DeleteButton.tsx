@@ -10,7 +10,7 @@ export default function DeleteButton({ penId }: { penId: number }) {
   const handleDelete = async () => {
     const res = await fetch(`/api/pens/${penId}`, { method: "DELETE" });
     if (res.ok) {
-      router.push("/");
+      router.push("/collection");
       router.refresh();
     }
   };

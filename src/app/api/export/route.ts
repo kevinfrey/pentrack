@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Pen } from "@/lib/types";
 
 export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id;
+
   try {
-    const pens = db.prepare("SELECT * FROM pens ORDER BY brand, model").all() as Pen[];
+    const pens = db.prepare("SELECT * FROM pens WHERE user_id = ? ORDER BY brand, model").all(userId) as Pen[];
 
     const headers = [
       "id", "brand", "model", "color", "nib_size", "nib_material", "nib_type",
@@ -31,7 +36,7 @@ export async function GET() {
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv",
-        "Content-Disposition": `attachment; filename="pentrack-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+        "Content-Disposition": `attachment; filename="penventory-export-${new Date().toISOString().slice(0, 10)}.csv"`,
       },
     });
   } catch {

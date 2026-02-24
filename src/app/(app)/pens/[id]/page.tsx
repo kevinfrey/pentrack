@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { auth } from "@/auth";
 import db from "@/lib/db";
 import { Pen, InkEntry, MaintenanceEntry, WritingSample } from "@/lib/types";
 import DeleteButton from "@/components/DeleteButton";
@@ -14,12 +15,16 @@ export default async function PenDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+  const userId = session.user.id;
+
   const { id } = await params;
   const penId = parseInt(id);
 
   const pen = db
-    .prepare("SELECT * FROM pens WHERE id = ?")
-    .get(penId) as Pen | undefined;
+    .prepare("SELECT * FROM pens WHERE id = ? AND user_id = ?")
+    .get(penId, userId) as Pen | undefined;
 
   if (!pen) notFound();
 
@@ -45,7 +50,7 @@ export default async function PenDetailPage({
     <div className="max-w-2xl mx-auto">
       {/* Nav */}
       <div className="flex items-center justify-between mb-6">
-        <Link href="/" className="flex items-center gap-1.5 text-stone-400 hover:text-stone-700 text-sm transition-colors">
+        <Link href="/collection" className="flex items-center gap-1.5 text-stone-400 hover:text-stone-700 text-sm transition-colors">
           <svg viewBox="0 0 16 16" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
             <path d="M10 3L5 8l5 5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
