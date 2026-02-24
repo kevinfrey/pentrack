@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tail:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null)",
+      "Bash(gh repo:*)",
+      "Bash(gh auth:*)",
+      "Bash(git init && git add -A && git status 2>&1)"
+    ]
+  }
+}
