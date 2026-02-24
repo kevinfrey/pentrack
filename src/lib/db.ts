@@ -42,6 +42,74 @@ db.exec(`
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (pen_id) REFERENCES pens(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS ink_bottles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL DEFAULT '',
+    brand TEXT NOT NULL DEFAULT '',
+    color_description TEXT DEFAULT '',
+    type TEXT DEFAULT '',
+    bottle_size_ml REAL,
+    remaining_pct INTEGER DEFAULT 100,
+    notes TEXT DEFAULT '',
+    swatch_url TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS pen_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pen_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    FOREIGN KEY (pen_id) REFERENCES pens(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS maintenance_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pen_id INTEGER NOT NULL,
+    type TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    date TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pen_id) REFERENCES pens(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS writing_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pen_id INTEGER NOT NULL,
+    ink_name TEXT DEFAULT '',
+    paper TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    image_url TEXT DEFAULT '',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (pen_id) REFERENCES pens(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS wishlist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    brand TEXT NOT NULL DEFAULT '',
+    model TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    url TEXT DEFAULT '',
+    estimated_price REAL,
+    priority TEXT DEFAULT 'medium',
+    acquired INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+  );
 `);
+
+// Migration: add new columns to pens table (safe for existing DBs)
+const penMigrations = [
+  "ALTER TABLE pens ADD COLUMN is_daily_carry INTEGER DEFAULT 0",
+  "ALTER TABLE pens ADD COLUMN provenance TEXT DEFAULT ''",
+  "ALTER TABLE pens ADD COLUMN storage_location TEXT DEFAULT ''",
+];
+
+for (const sql of penMigrations) {
+  try {
+    db.exec(sql);
+  } catch {
+    // Column already exists — safe to ignore
+  }
+}
 
 export default db;

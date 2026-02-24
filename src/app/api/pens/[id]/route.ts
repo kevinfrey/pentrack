@@ -35,9 +35,11 @@ export async function PUT(
         purchase_price = @purchase_price, purchase_location = @purchase_location,
         current_ink = @current_ink, condition = @condition, notes = @notes,
         image_url = @image_url, rating = @rating,
+        is_daily_carry = @is_daily_carry, provenance = @provenance,
+        storage_location = @storage_location,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = @id
-    `).run({ ...data, id: parseInt(id) });
+    `).run({ is_daily_carry: 0, provenance: "", storage_location: "", ...data, id: parseInt(id) });
     const pen = db
       .prepare("SELECT * FROM pens WHERE id = ?")
       .get(parseInt(id)) as Pen;

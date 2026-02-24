@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Pen } from "@/lib/types";
 import { NibIcon } from "@/components/Logo";
+import TagInput from "@/components/TagInput";
 
 const NIB_SIZES = ["EF", "XF", "F", "M", "B", "BB", "1.0mm", "1.1mm", "1.5mm", "2.0mm", "Flex", "Oblique", "Other"];
 const NIB_MATERIALS = ["Steel", "Gold (14k)", "Gold (18k)", "Gold (21k)", "Titanium", "Unknown"];
@@ -17,6 +18,7 @@ type FormData = {
   nib_size: string; nib_material: string; nib_type: string; fill_system: string;
   date_purchased: string; purchase_price: string; purchase_location: string;
   current_ink: string; condition: string; notes: string; image_url: string; rating: number;
+  is_daily_carry: number; provenance: string; storage_location: string;
 };
 
 const EMPTY: FormData = {
@@ -24,11 +26,18 @@ const EMPTY: FormData = {
   nib_size: "", nib_material: "", nib_type: "", fill_system: "",
   date_purchased: "", purchase_price: "", purchase_location: "",
   current_ink: "", condition: "", notes: "", image_url: "", rating: 0,
+  is_daily_carry: 0, provenance: "", storage_location: "",
 };
 
 function penToForm(pen?: Pen): FormData {
   if (!pen) return EMPTY;
-  return { ...pen, purchase_price: pen.purchase_price !== null ? String(pen.purchase_price) : "" };
+  return {
+    ...pen,
+    purchase_price: pen.purchase_price !== null ? String(pen.purchase_price) : "",
+    is_daily_carry: pen.is_daily_carry ?? 0,
+    provenance: pen.provenance ?? "",
+    storage_location: pen.storage_location ?? "",
+  };
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -46,11 +55,12 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function PenForm({ initialData, penId }: { initialData?: Pen; penId?: number }) {
+export default function PenForm({ initialData, penId, initialTags }: { initialData?: Pen; penId?: number; initialTags?: string[] }) {
   const router = useRouter();
   const isEdit = penId !== undefined;
 
   const [form, setForm] = useState<FormData>(penToForm(initialData));
+  const [tags, setTags] = useState<string[]>(initialTags ?? []);
   const [imagePreview, setImagePreview] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isIdentifying, setIsIdentifying] = useState(false);
@@ -114,7 +124,11 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
         const data = await res.json();
         imageUrl = data.imageUrl || imageUrl;
       }
-      const payload = { ...form, image_url: imageUrl, purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null };
+      const payload = {
+        ...form,
+        image_url: imageUrl,
+        purchase_price: form.purchase_price ? parseFloat(form.purchase_price) : null,
+      };
       const res = await fetch(isEdit ? `/api/pens/${penId}` : "/api/pens", {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
@@ -122,6 +136,28 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
       });
       if (!res.ok) throw new Error();
       const pen = await res.json();
+
+      // Save tags
+      if (isEdit) {
+        // Delete all existing tags then re-add
+        const existingTagsRes = await fetch(`/api/pens/${pen.id}/tags`);
+        const existingTags: string[] = await existingTagsRes.json();
+        for (const tag of existingTags) {
+          await fetch(`/api/pens/${pen.id}/tags`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ tag }),
+          });
+        }
+      }
+      for (const tag of tags) {
+        await fetch(`/api/pens/${pen.id}/tags`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tag }),
+        });
+      }
+
       router.push(`/pens/${pen.id}`);
       router.refresh();
     } catch {
@@ -152,7 +188,6 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
       <div className="section-card">
         <SectionHeader>Photo</SectionHeader>
         <div className="flex flex-col sm:flex-row gap-4">
-          {/* Preview */}
           <div
             className="w-full sm:w-40 h-52 sm:h-48 bg-stone-100 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer border-2 border-dashed border-stone-300 hover:border-slate-400 transition-colors flex-shrink-0"
             onClick={() => fileInputRef.current?.click()}
@@ -168,7 +203,6 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
             )}
           </div>
 
-          {/* Controls */}
           <div className="flex flex-col gap-2.5 flex-1 justify-center">
             <input ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={handleFileChange} className="hidden" />
             <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary w-full">
@@ -259,6 +293,9 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
           <Field label="Where Purchased">
             <input value={form.purchase_location} onChange={e => set("purchase_location", e.target.value)} placeholder="e.g. JetPens, local pen shop, eBay" className="field-input" />
           </Field>
+          <Field label="Provenance / Acquisition Story">
+            <textarea value={form.provenance} onChange={e => set("provenance", e.target.value)} placeholder="How did you come to own this pen?" rows={2} className="field-input resize-none" />
+          </Field>
         </div>
       </div>
 
@@ -277,6 +314,21 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
               </select>
             </Field>
           </div>
+          <Field label="Storage Location">
+            <input value={form.storage_location} onChange={e => set("storage_location", e.target.value)} placeholder="e.g. Top drawer, pen case, display stand" className="field-input" />
+          </Field>
+          <div>
+            <label className="field-label">Daily Carry</label>
+            <label className="flex items-center gap-2.5 cursor-pointer select-none">
+              <div
+                onClick={() => set("is_daily_carry", form.is_daily_carry ? 0 : 1)}
+                className={`w-10 h-6 rounded-full transition-colors relative flex-shrink-0 ${form.is_daily_carry ? "bg-amber-400" : "bg-stone-200"}`}
+              >
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform ${form.is_daily_carry ? "translate-x-5" : "translate-x-1"}`} />
+              </div>
+              <span className="text-sm text-stone-600">{form.is_daily_carry ? "Yes — this is a daily carry" : "Not a daily carry"}</span>
+            </label>
+          </div>
           <Field label="Rating">
             <div className="flex gap-1.5 mt-0.5">
               {[1, 2, 3, 4, 5].map(star => (
@@ -286,6 +338,9 @@ export default function PenForm({ initialData, penId }: { initialData?: Pen; pen
                 </button>
               ))}
             </div>
+          </Field>
+          <Field label="Tags">
+            <TagInput tags={tags} onChange={setTags} />
           </Field>
           <Field label="Notes">
             <textarea value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any additional notes about this pen…" rows={3} className="field-input resize-none" />

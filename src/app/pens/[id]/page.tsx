@@ -1,9 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import db from "@/lib/db";
-import { Pen, InkEntry } from "@/lib/types";
+import { Pen, InkEntry, MaintenanceEntry, WritingSample } from "@/lib/types";
 import DeleteButton from "@/components/DeleteButton";
 import InkHistory from "@/components/InkHistory";
+import MaintenanceLog from "@/components/MaintenanceLog";
+import WritingSamples from "@/components/WritingSamples";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +28,18 @@ export default async function PenDetailPage({
       "SELECT * FROM ink_history WHERE pen_id = ? ORDER BY inked_date DESC, created_at DESC"
     )
     .all(penId) as InkEntry[];
+
+  const tags = (db
+    .prepare("SELECT tag FROM pen_tags WHERE pen_id = ? ORDER BY tag")
+    .all(penId) as { tag: string }[]).map(t => t.tag);
+
+  const maintenanceEntries = db
+    .prepare("SELECT * FROM maintenance_log WHERE pen_id = ? ORDER BY date DESC, created_at DESC")
+    .all(penId) as MaintenanceEntry[];
+
+  const writingSamples = db
+    .prepare("SELECT * FROM writing_samples WHERE pen_id = ? ORDER BY created_at DESC")
+    .all(penId) as WritingSample[];
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -62,9 +76,16 @@ export default async function PenDetailPage({
         <div className="px-5 py-4 border-t border-stone-100">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h1 className="font-playfair text-2xl font-bold text-stone-900">
-                {pen.brand}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="font-playfair text-2xl font-bold text-stone-900">
+                  {pen.brand}
+                </h1>
+                {!!pen.is_daily_carry && (
+                  <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-lg border border-amber-200">
+                    Daily Carry
+                  </span>
+                )}
+              </div>
               {pen.model && (
                 <p className="text-stone-500 mt-0.5">{pen.model}</p>
               )}
@@ -76,6 +97,17 @@ export default async function PenDetailPage({
               </div>
             )}
           </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {tags.map(tag => (
+                <span key={tag} className="text-xs font-medium bg-slate-800 text-white px-2 py-0.5 rounded-lg">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {/* Key specs row */}
           {(pen.nib_size || pen.fill_system || pen.color) && (
@@ -104,11 +136,12 @@ export default async function PenDetailPage({
           <DetailRow label="Fill System" value={pen.fill_system} />
           <DetailRow label="Color" value={pen.color} />
           <DetailRow label="Condition" value={pen.condition} />
+          <DetailRow label="Storage" value={pen.storage_location} />
         </dl>
       </div>
 
       {/* Purchase info */}
-      {(pen.date_purchased || pen.purchase_price != null || pen.purchase_location) && (
+      {(pen.date_purchased || pen.purchase_price != null || pen.purchase_location || pen.provenance) && (
         <div className="section-card">
           <h2 className="font-playfair font-semibold text-stone-900 mb-3">Purchase</h2>
           <dl className="divide-y divide-stone-100">
@@ -119,11 +152,22 @@ export default async function PenDetailPage({
             />
             <DetailRow label="From" value={pen.purchase_location} />
           </dl>
+          {pen.provenance && (
+            <p className="text-sm text-stone-600 whitespace-pre-wrap leading-relaxed mt-3 pt-3 border-t border-stone-100">
+              {pen.provenance}
+            </p>
+          )}
         </div>
       )}
 
       {/* Ink history */}
       <InkHistory penId={pen.id} initialHistory={inkHistory} />
+
+      {/* Maintenance log */}
+      <MaintenanceLog penId={pen.id} initialEntries={maintenanceEntries} />
+
+      {/* Writing samples */}
+      <WritingSamples penId={pen.id} initialSamples={writingSamples} />
 
       {/* Notes */}
       {pen.notes && (

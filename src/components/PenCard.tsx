@@ -2,56 +2,83 @@ import Link from "next/link";
 import { Pen } from "@/lib/types";
 import { NibIcon } from "@/components/Logo";
 
-export default function PenCard({ pen }: { pen: Pen }) {
+interface PenCardProps {
+  pen: Pen;
+  tags?: string[];
+  onTagClick?: (tag: string) => void;
+}
+
+export default function PenCard({ pen, tags = [], onTagClick }: PenCardProps) {
   return (
-    <Link
-      href={`/pens/${pen.id}`}
-      className="group bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-stone-200/80 hover:shadow-lg hover:ring-stone-300/80 transition-all duration-200"
-    >
-      {/* Image */}
-      <div className="aspect-[3/4] bg-stone-100 relative overflow-hidden">
-        {pen.image_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={pen.image_url}
-            alt={`${pen.brand} ${pen.model}`}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <NibIcon className="h-10 w-10 text-stone-300 group-hover:text-stone-400 transition-colors" />
-          </div>
-        )}
+    <div className="group bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-stone-200/80 hover:shadow-lg hover:ring-stone-300/80 transition-all duration-200 flex flex-col">
+      <Link href={`/pens/${pen.id}`} className="block">
+        {/* Image */}
+        <div className="aspect-[3/4] bg-stone-100 relative overflow-hidden">
+          {pen.image_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={pen.image_url}
+              alt={`${pen.brand} ${pen.model}`}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <NibIcon className="h-10 w-10 text-stone-300 group-hover:text-stone-400 transition-colors" />
+            </div>
+          )}
 
-        {/* Nib size badge */}
-        {pen.nib_size && (
-          <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-lg tracking-wide">
-            {pen.nib_size}
-          </div>
-        )}
+          {/* Nib size badge */}
+          {pen.nib_size && (
+            <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white text-[10px] font-semibold px-2 py-1 rounded-lg tracking-wide">
+              {pen.nib_size}
+            </div>
+          )}
 
-        {/* Current ink dot */}
-        {pen.current_ink && (
-          <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-white shadow-sm" title={`Inked: ${pen.current_ink}`} />
-        )}
-      </div>
+          {/* Daily carry badge */}
+          {!!pen.is_daily_carry && (
+            <div className="absolute top-2 left-2 bg-amber-400 text-amber-950 text-[10px] font-bold px-2 py-1 rounded-lg tracking-wide">
+              EDC
+            </div>
+          )}
 
-      {/* Info */}
-      <div className="p-3.5">
-        <p className="font-semibold text-stone-900 text-sm truncate">
-          {pen.brand || "Unknown Brand"}
-        </p>
-        <p className="text-xs text-stone-400 truncate mt-0.5">
-          {pen.model || "—"}
-        </p>
+          {/* Current ink dot */}
+          {pen.current_ink && (
+            <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-white shadow-sm" title={`Inked: ${pen.current_ink}`} />
+          )}
+        </div>
 
-        {pen.rating > 0 && (
-          <div className="mt-2 text-amber-400 text-xs tracking-tight">
-            {"★".repeat(pen.rating)}
-            <span className="text-stone-200">{"★".repeat(5 - pen.rating)}</span>
-          </div>
-        )}
-      </div>
-    </Link>
+        {/* Info */}
+        <div className="p-3.5 pb-2">
+          <p className="font-semibold text-stone-900 text-sm truncate">
+            {pen.brand || "Unknown Brand"}
+          </p>
+          <p className="text-xs text-stone-400 truncate mt-0.5">
+            {pen.model || "—"}
+          </p>
+
+          {pen.rating > 0 && (
+            <div className="mt-2 text-amber-400 text-xs tracking-tight">
+              {"★".repeat(pen.rating)}
+              <span className="text-stone-200">{"★".repeat(5 - pen.rating)}</span>
+            </div>
+          )}
+        </div>
+      </Link>
+
+      {/* Tags — clickable, outside the main Link */}
+      {tags.length > 0 && (
+        <div className="px-3.5 pb-3 flex flex-wrap gap-1">
+          {tags.map(tag => (
+            <button
+              key={tag}
+              onClick={() => onTagClick?.(tag)}
+              className="text-[10px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-800 hover:text-white px-1.5 py-0.5 rounded transition-colors"
+            >
+              {tag}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

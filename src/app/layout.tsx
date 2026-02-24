@@ -37,9 +37,28 @@ export default function RootLayout({
               </span>
             </Link>
           </div>
+          <nav className="border-t border-slate-800">
+            <div className="max-w-5xl mx-auto px-4 flex gap-1">
+              <NavLink href="/">Collection</NavLink>
+              <NavLink href="/inks">Inks</NavLink>
+              <NavLink href="/wishlist">Wishlist</NavLink>
+              <NavLink href="/stats">Stats</NavLink>
+            </div>
+          </nav>
         </header>
         <main className="max-w-5xl mx-auto px-4 py-8">{children}</main>
       </body>
     </html>
+  );
+}
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="px-3 py-2.5 text-sm font-medium text-slate-400 hover:text-white transition-colors"
+    >
+      {children}
+    </Link>
   );
 }

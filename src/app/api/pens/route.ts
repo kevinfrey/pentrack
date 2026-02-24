@@ -23,14 +23,14 @@ export async function POST(request: Request) {
       INSERT INTO pens (
         brand, model, color, nib_size, nib_material, nib_type, fill_system,
         date_purchased, purchase_price, purchase_location, current_ink,
-        condition, notes, image_url, rating
+        condition, notes, image_url, rating, is_daily_carry, provenance, storage_location
       ) VALUES (
         @brand, @model, @color, @nib_size, @nib_material, @nib_type, @fill_system,
         @date_purchased, @purchase_price, @purchase_location, @current_ink,
-        @condition, @notes, @image_url, @rating
+        @condition, @notes, @image_url, @rating, @is_daily_carry, @provenance, @storage_location
       )
     `);
-    const result = stmt.run(data);
+    const result = stmt.run({ is_daily_carry: 0, provenance: "", storage_location: "", ...data });
     const pen = db
       .prepare("SELECT * FROM pens WHERE id = ?")
       .get(result.lastInsertRowid) as Pen;

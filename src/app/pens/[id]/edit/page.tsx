@@ -17,5 +17,7 @@ export default async function EditPenPage({
 
   if (!pen) notFound();
 
-  return <PenForm initialData={pen} penId={pen.id} />;
+  const tags = (db.prepare("SELECT tag FROM pen_tags WHERE pen_id = ? ORDER BY tag").all(pen.id) as { tag: string }[]).map(t => t.tag);
+
+  return <PenForm initialData={pen} penId={pen.id} initialTags={tags} />;
 }
