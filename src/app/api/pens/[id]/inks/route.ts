@@ -47,5 +47,30 @@ export async function POST(
   const entry = db
     .prepare("SELECT * FROM ink_history WHERE id = ?")
     .get(result.lastInsertRowid) as InkEntry;
-  return NextResponse.json(entry, { status: 201 });
+
+  // Auto-decrement matching ink bottle remaining_pct by 5% per fill
+  let inkBottleUpdated = false;
+  let inkBottleName: string | null = null;
+
+  let bottle = db
+    .prepare("SELECT id, name, remaining_pct FROM ink_bottles WHERE user_id = ? AND LOWER(name) = LOWER(?)")
+    .get(userId, ink_name) as { id: number; name: string; remaining_pct: number } | undefined;
+
+  if (!bottle) {
+    bottle = db
+      .prepare("SELECT id, name, remaining_pct FROM ink_bottles WHERE user_id = ? AND LOWER(name) LIKE LOWER(?)")
+      .get(userId, `%${ink_name}%`) as { id: number; name: string; remaining_pct: number } | undefined;
+  }
+
+  if (bottle && bottle.remaining_pct > 0) {
+    db.prepare("UPDATE ink_bottles SET remaining_pct = MAX(0, remaining_pct - 5) WHERE id = ? AND user_id = ?")
+      .run(bottle.id, userId);
+    inkBottleUpdated = true;
+    inkBottleName = bottle.name;
+  }
+
+  return NextResponse.json(
+    { success: true, entry, inkBottleUpdated, ...(inkBottleName ? { inkBottleName } : {}) },
+    { status: 201 }
+  );
 }

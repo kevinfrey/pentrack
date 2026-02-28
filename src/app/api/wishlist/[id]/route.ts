@@ -3,6 +3,44 @@ import { auth } from "@/auth";
 import db from "@/lib/db";
 import { WishlistItem } from "@/lib/types";
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id;
+
+  const { id } = await params;
+  const item = db.prepare("SELECT * FROM wishlist WHERE id = ? AND user_id = ?").get(parseInt(id), userId) as WishlistItem | undefined;
+  if (!item) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(item);
+}
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = session.user.id;
+
+  const { id } = await params;
+  try {
+    const data = await request.json();
+    db.prepare(`
+      UPDATE wishlist SET
+        brand = @brand, model = @model, notes = @notes, url = @url,
+        estimated_price = @estimated_price, priority = @priority, acquired = @acquired
+      WHERE id = @id AND user_id = @user_id
+    `).run({ ...data, id: parseInt(id), user_id: userId });
+    const item = db.prepare("SELECT * FROM wishlist WHERE id = ? AND user_id = ?").get(parseInt(id), userId) as WishlistItem;
+    return NextResponse.json(item);
+  } catch {
+    return NextResponse.json({ error: "Failed to update wishlist item" }, { status: 500 });
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import db from "@/lib/db";
@@ -71,7 +72,12 @@ export default async function StatsPage() {
               {byBrand.map(({ brand, count }) => (
                 <div key={brand}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-stone-700 font-medium truncate">{brand}</span>
+                    <Link
+                      href={`/collection?brand=${encodeURIComponent(brand)}`}
+                      className="text-stone-700 font-medium truncate hover:text-amber-700 hover:underline transition-colors"
+                    >
+                      {brand}
+                    </Link>
                     <span className="text-stone-400 flex-shrink-0 ml-2">{count}</span>
                   </div>
                   <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
@@ -93,7 +99,12 @@ export default async function StatsPage() {
               {byNibSize.map(({ nib_size, count }) => (
                 <div key={nib_size}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-stone-700 font-medium">{nib_size}</span>
+                    <Link
+                      href={`/collection?nib=${encodeURIComponent(nib_size)}`}
+                      className="text-stone-700 font-medium hover:text-amber-700 hover:underline transition-colors"
+                    >
+                      {nib_size}
+                    </Link>
                     <span className="text-stone-400">{count}</span>
                   </div>
                   <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
@@ -117,7 +128,12 @@ export default async function StatsPage() {
               {mostUsedInks.map(({ ink_name, count }) => (
                 <div key={ink_name}>
                   <div className="flex justify-between text-sm mb-1">
-                    <span className="text-stone-700 font-medium truncate">{ink_name}</span>
+                    <Link
+                      href={`/inks?search=${encodeURIComponent(ink_name)}`}
+                      className="text-stone-700 font-medium truncate hover:text-amber-700 hover:underline transition-colors"
+                    >
+                      {ink_name}
+                    </Link>
                     <span className="text-stone-400 flex-shrink-0 ml-2">{count}×</span>
                   </div>
                   <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
@@ -139,9 +155,12 @@ export default async function StatsPage() {
               <div className="space-y-2">
                 {mostActivePens.filter(p => p.ink_changes > 0).map((pen) => (
                   <div key={pen.id} className="flex justify-between text-sm">
-                    <span className="text-stone-700 truncate">
+                    <Link
+                      href={`/pens/${pen.id}`}
+                      className="text-stone-700 truncate hover:text-amber-700 hover:underline transition-colors"
+                    >
                       {pen.brand} {pen.model && `— ${pen.model}`}
-                    </span>
+                    </Link>
                     <span className="text-stone-400 flex-shrink-0 ml-2">{pen.ink_changes} inks</span>
                   </div>
                 ))}
@@ -155,8 +174,13 @@ export default async function StatsPage() {
               <div className="space-y-2">
                 {lowStockInks.map((ink) => (
                   <div key={ink.id} className="flex justify-between text-sm">
-                    <span className="text-stone-700">{ink.brand} — {ink.name}</span>
-                    <span className={`font-medium ${ink.remaining_pct <= 10 ? "text-red-500" : "text-amber-600"}`}>
+                    <Link
+                      href={`/inks/${ink.id}`}
+                      className="text-stone-700 hover:text-amber-700 hover:underline transition-colors"
+                    >
+                      {ink.brand} — {ink.name}
+                    </Link>
+                    <span className={`font-medium flex-shrink-0 ml-2 ${ink.remaining_pct <= 10 ? "text-red-500" : "text-amber-600"}`}>
                       {ink.remaining_pct}%
                     </span>
                   </div>

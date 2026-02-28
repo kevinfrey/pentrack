@@ -92,7 +92,7 @@ export default function InkHistory({
 
       {/* Add form */}
       {showForm && (
-        <div className="bg-parchment-50 rounded-xl border border-stone-200 p-4 mb-4 space-y-3">
+        <div className="bg-amber-50 rounded-xl border border-stone-200 p-4 mb-4 space-y-3">
           <div>
             <label className="field-label">Ink Name *</label>
             <input

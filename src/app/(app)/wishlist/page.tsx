@@ -187,13 +187,25 @@ function WishlistCard({
         </div>
       </div>
 
-      <button
-        onClick={() => onDelete(item.id)}
-        className="text-xs opacity-40 hover:opacity-70 transition-opacity flex-shrink-0"
-        title="Remove"
-      >
-        ×
-      </button>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Link
+          href={`/wishlist/${item.id}`}
+          onClick={e => e.stopPropagation()}
+          className="opacity-40 hover:opacity-70 transition-opacity"
+          title="Edit"
+        >
+          <svg viewBox="0 0 16 16" fill="none" className="h-3.5 w-3.5" stroke="currentColor" strokeWidth="2">
+            <path d="M11.5 2.5a1.414 1.414 0 0 1 2 2L5 13H3v-2L11.5 2.5z" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </Link>
+        <button
+          onClick={() => onDelete(item.id)}
+          className="text-xs opacity-40 hover:opacity-70 transition-opacity"
+          title="Remove"
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }
